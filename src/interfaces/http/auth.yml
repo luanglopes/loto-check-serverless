@@ -1,0 +1,22 @@
+signup:
+  handler: ${self:custom.MODULES_ROOT}/auth/api/signup.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /signup
+
+login:
+  handler: ${self:custom.MODULES_ROOT}/auth/api/login.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /login
+
+getProfile:
+  handler: ${self:custom.MODULES_ROOT}/auth/api/getProfile.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /profile
+        authorizer:
+          name: customAuthorizer

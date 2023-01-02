@@ -1,0 +1,35 @@
+createBet:
+  handler: ${self:custom.MODULES_ROOT}/bets/api/createBet.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /bets
+        authorizer:
+          name: customAuthorizer
+
+updateBet:
+  handler: ${self:custom.MODULES_ROOT}/bets/api/updateBet.handler
+  events:
+    - httpApi:
+        method: PUT
+        path: /bets/{betId}
+        authorizer:
+          name: customAuthorizer
+
+deleteBet:
+  handler: ${self:custom.MODULES_ROOT}/bets/api/deleteBet.handler
+  events:
+    - httpApi:
+        method: DELETE
+        path: /bets/{betId}
+        authorizer:
+          name: customAuthorizer
+
+listBets:
+  handler: ${self:custom.MODULES_ROOT}/bets/api/listBets.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /bets
+        authorizer:
+          name: customAuthorizer

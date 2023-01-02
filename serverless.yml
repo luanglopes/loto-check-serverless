@@ -1,0 +1,79 @@
+service: loto-check-serverless
+frameworkVersion: '3'
+configValidationMode: error
+useDotenv: true
+
+package:
+  patterns:
+    - '!resources/**'
+    - ./package.json
+  individually: true
+
+plugins:
+  - serverless-plugin-log-retention
+  - serverless-esbuild
+  - serverless-offline
+
+
+provider:
+  name: aws
+  region: us-east-1
+
+  runtime: nodejs18.x
+  versionFunctions: false
+  memorySize: 256
+
+  httpApi:
+    cors: true
+    # disableDefaultEndpoint: true
+    authorizers:
+      customAuthorizer:
+        type: request
+        functionName: authorizerFunction
+        resultTtlInSeconds: 1800
+        enableSimpleResponses: true
+        identitySource:
+          - $request.header.Authorization
+
+  vpc:
+    securityGroupIds:
+      - !Ref LambdaSecurityGroup
+    subnetIds:
+      - !Ref SubnetA
+      - !Ref SubnetB
+
+  environment:
+    NODE_ENV: ${self:custom.stage}
+    DB_NAME: ${self:custom.DB_NAME}
+    DB_USER: ${self:custom.DB_USERNAME}
+    DB_PASS: ${self:custom.DB_PASSWORD}
+    DB_PORT: ${env:DB_PORT, self:custom.DB_PORT}
+    DB_HOST: ${env:DB_HOST, self:custom.PROXY_ENDPOINT}
+    JWT_SECRET: ${self:custom.JWT_SECRET}
+
+custom:
+  DB_NAME: loto_check
+  DB_USERNAME: postgres
+  DB_PASSWORD: very-hard-password
+  JWT_SECRET: jwt-secret
+  DB_PORT: !GetAtt RDSInstance.Endpoint.Port
+  PROXY_ENDPOINT: !GetAtt RDSProxy.Endpoint
+  VPC_CIDR: 10
+  MODULES_ROOT: src/modules
+
+  stage: ${opt:stage, 'dev'}
+  logRetentionInDays: 1
+
+  esbuild:
+    config: './esbuild.config.cjs'
+
+functions:
+  - ${file(./src/interfaces/invoke/auth.yml)}
+  - ${file(./src/interfaces/http/auth.yml)}
+  - ${file(./src/interfaces/http/bets.yml)}
+
+resources:
+  - ${file(./resources/VpcResources.yml)}
+  - ${file(resources/RoutingResources.yml)}
+  - ${file(./resources/RdsResources.yml)}
+  - ${file(./resources/RdsProxyResources.yml)}

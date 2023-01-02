@@ -1,0 +1,2 @@
+authorizerFunction:
+  handler: ${self:custom.MODULES_ROOT}/auth/functions/authorizer.handler

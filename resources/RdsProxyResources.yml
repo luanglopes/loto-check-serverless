@@ -1,0 +1,64 @@
+Resources:
+  RDSProxy:
+    Type: AWS::RDS::DBProxy
+    Properties:
+      EngineFamily: POSTGRESQL
+      DBProxyName: RDSProxy-${self:custom.stage}
+      RoleArn: !GetAtt RDSProxyRole.Arn
+      Auth:
+        - AuthScheme: SECRETS
+          IAMAuth: DISABLED
+          SecretArn: !Ref RDSSecret
+      VpcSecurityGroupIds:
+        - !Ref RDSSecurityGroup
+      VpcSubnetIds:
+        - !Ref SubnetA
+        - !Ref SubnetB
+
+  RDSProxyTargetGroup:
+    Type: AWS::RDS::DBProxyTargetGroup
+    Properties:
+      TargetGroupName: default
+      DBProxyName: !Ref RDSProxy
+      DBInstanceIdentifiers:
+        - !Ref RDSInstance
+
+  RDSSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      SecretString: '{"username":"${self:custom.DB_USERNAME}", "password":"${self:custom.DB_PASSWORD}"}'
+
+  RDSProxyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - 'rds.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - Ref: RDSProxyPolicy
+
+  RDSProxyPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "Get values from Secrets Manager"
+      Path: /
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "secretsmanager:GetSecretValue"
+            Resource: !Ref RDSSecret
+          - Effect: Allow
+            Action:
+              - "kms:Decrypt"
+            Resource: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/*"
+            Condition:
+              StringEquals:
+                kms:ViaService: !Sub "secretsmanager.${AWS::Region}.amazonaws.com"
